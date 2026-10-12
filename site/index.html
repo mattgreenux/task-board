@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>TimeRush Tasks</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <div class="sticky">
+  <header class="topbar">
+    <h1>TimeRush tasks</h1>
+    <div class="actions">
+      <button id="reload-button" class="btn" type="button">Reload</button>
+      <button id="save-button" class="btn primary" type="button" disabled>Save</button>
+      <button id="settings-button" class="btn icon" type="button" aria-label="Settings">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.4 7.4 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.4 7.4 0 0 0 1.7-1l2.4 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav id="tabs" class="tabs" aria-label="Lists"></nav>
+  </div>
+  <div id="banner" class="banner" role="status" hidden></div>
+  <main id="board" class="board" aria-busy="true"><p class="loading">Loading…</p></main>
+
+  <dialog id="editor" class="sheet">
+    <form method="dialog" id="editor-form">
+      <h2 id="editor-heading">Edit item</h2>
+      <label class="field">
+        <span class="sr-only">Item text</span>
+        <textarea id="editor-text" rows="8" spellcheck="true" required></textarea>
+      </label>
+      <p class="hint">First line is the item. Lines below are its notes; start each with “- ”.</p>
+      <div class="row">
+        <label class="field">List
+          <select id="editor-list"></select>
+        </label>
+        <label class="field">Position
+          <select id="editor-position"></select>
+        </label>
+      </div>
+      <p id="editor-warning" class="hint warning" hidden>Next Steps tasks should be small and specific. Split this one up if it's big.</p>
+      <div class="dialog-buttons">
+        <button id="editor-delete" class="btn danger" type="button">Delete</button>
+        <span class="spacer"></span>
+        <button class="btn" value="cancel" formnovalidate>Cancel</button>
+        <button id="editor-done" class="btn primary" value="done">Done</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="settings-dialog" class="sheet">
+    <form method="dialog" id="settings-form">
+      <h2>Settings</h2>
+      <label class="field">GitHub token
+        <input id="settings-token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…">
+      </label>
+      <details class="help">
+        <summary>How to make a token</summary>
+        <ol>
+          <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub › New fine-grained token</a>.</li>
+          <li>Name it (e.g. “Task board”) and pick an expiration date.</li>
+          <li>Resource owner: your account. Repository access: <b>Only select repositories</b> › <b>TimeRush</b> (the repository with the lists, not task-board).</li>
+          <li>Permissions › Repository permissions › <b>Contents: Read and write</b>.</li>
+          <li>Generate it, then paste it here on each device you use.</li>
+        </ol>
+        <p>The token stays in this browser only. Anyone holding it can change TimeRush, so don't share it.</p>
+      </details>
+      <div class="row">
+        <label class="field">Owner <input id="settings-owner" autocomplete="off" spellcheck="false"></label>
+        <label class="field">Repository <input id="settings-repo" autocomplete="off" spellcheck="false"></label>
+        <label class="field">Branch <input id="settings-branch" autocomplete="off" spellcheck="false"></label>
+      </div>
+      <div class="dialog-buttons">
+        <button id="settings-forget" class="btn danger" type="button">Forget token</button>
+        <span class="spacer"></span>
+        <button class="btn" value="cancel" formnovalidate>Cancel</button>
+        <button class="btn primary" value="save">Save settings</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="text-dialog" class="sheet">
+    <form method="dialog">
+      <h2 id="text-heading"></h2>
+      <p id="text-message"></p>
+      <textarea id="text-content" rows="12" readonly></textarea>
+      <div class="dialog-buttons">
+        <button id="text-copy" class="btn" type="button">Copy</button>
+        <span class="spacer"></span>
+        <button id="text-secondary" class="btn" type="button" hidden></button>
+        <button class="btn primary" value="close">Close</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
