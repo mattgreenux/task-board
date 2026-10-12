@@ -76,7 +76,7 @@ a { color: var(--accent); }
 .btn.small { font-size: 14px; min-height: 30px; padding: 3px 10px; }
 button.link { font: inherit; background: none; border: 0; color: var(--accent); text-decoration: underline; cursor: pointer; padding: 0; }
 
-/* Top bar and tabs. They stay at the top while the page scrolls. */
+/* Top bar and toolbar. They stay at the top while the page scrolls. */
 .sticky {
   position: sticky;
   top: 0;
@@ -94,26 +94,13 @@ button.link { font: inherit; background: none; border: 0; color: var(--accent); 
 .topbar h1 { font-size: 19px; margin: 0; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .actions { display: flex; gap: 8px; }
 
-.tabs {
+.toolbar {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 6px;
   padding: 0 16px 10px;
 }
-.tab {
-  font: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  flex: 1;
-  color: var(--muted);
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 7px 4px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.tab.active { color: var(--text); background: var(--surface); border-color: var(--border); box-shadow: var(--shadow); }
 .toggle { display: flex; align-items: center; gap: 5px; font-size: 14px; color: var(--muted); white-space: nowrap; padding-left: 4px; }
 .count { color: var(--muted); font-weight: 400; font-size: 0.85em; }
 
@@ -134,21 +121,18 @@ button.link { font: inherit; background: none; border: 0; color: var(--accent); 
 .banner.error { background: var(--error-bg); }
 .banner .close { font-size: 20px; line-height: 1; background: none; border: 0; color: var(--muted); cursor: pointer; padding: 0 4px; }
 
-/* The lists. Phones show one list at a time (picked with the tabs); wider
-   screens show all three side by side and hide the tabs. */
+/* The lists. Phones stack them one after another, so an item can be dragged
+   from one list to the next; wider screens show all three side by side. */
 .board { padding: 12px 16px calc(40px + env(safe-area-inset-bottom)); }
 .loading { color: var(--muted); }
 .welcome { grid-column: 1 / -1; max-width: 460px; margin: 32px auto; padding: 20px; text-align: center; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
 .welcome h2 { font-size: 18px; margin: 0 0 8px; }
 .welcome p { margin: 0 0 16px; color: var(--muted); }
-.column { display: none; }
-.column.active { display: block; }
+.column + .column { margin-top: 28px; }
 
 @media (min-width: 900px) {
-  .tabs { justify-content: flex-end; }
-  .tab { display: none; }
   .board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start; }
-  .column { display: block; }
+  .column + .column { margin-top: 0; }
 }
 
 .column-head { display: flex; align-items: center; gap: 8px; }
