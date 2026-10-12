@@ -17,11 +17,14 @@ The page is plain HTML, CSS and JavaScript with no libraries and no server. It's
 ## Setup
 
 1. **Publish the page (once).** In this repo on GitHub: Settings › Pages › Build and deployment › Source: **GitHub Actions**. Then Actions › Deploy task board › **Run workflow**. After a minute the board is at the address above. Later changes to `site/` publish automatically when they reach `main`.
-2. **Make a token (once, or when it expires).** TimeRush is private, so the board needs a token even to show the lists. Open [GitHub › New fine-grained token](https://github.com/settings/personal-access-tokens/new):
-   - Name: e.g. "Task board". Expiration: pick a date (you make a new token when it expires).
-   - Repository access: **Only select repositories** › **TimeRush** (the repo with the lists, not task-board).
-   - Permissions › Repository permissions › **Contents: Read and write**.
-   - Generate it and copy it (GitHub shows it only once).
+2. **Make a token (once, or when it expires).** TimeRush is private, so the board needs a token even to show the lists. Open [GitHub › New fine-grained token](https://github.com/settings/personal-access-tokens/new) and fill in the form from top to bottom:
+   - **Token name:** e.g. "Task board".
+   - **Resource owner:** your account (mattgreenux).
+   - **Expiration:** pick a date. When it passes, make a new token the same way.
+   - **Repository access:** choose **Only select repositories**, then pick **TimeRush** from the list. Not task-board, and not "All repositories".
+   - **Permissions:** the token needs exactly one permission. Under **Repository permissions**, find **Contents** and set it to **Read and write**. (If GitHub shows an **Add permissions** button instead of a list, click it, tick **Contents**, then change its access from Read-only to **Read and write**.)
+   - Leave everything else as it is. **Metadata: Read-only** switches on by itself once you pick Contents; that's required and fine. Don't add anything under **Account permissions**.
+   - Click **Generate token** and copy it straight away (GitHub shows it only once).
 3. **On each device:** open the board, tap **Open Settings** (or ⚙︎), paste the token and tap **Save settings**.
 
 The token is stored only in the browser it was entered in (`localStorage`). Anyone who gets it can change TimeRush until it expires, so revoke it on GitHub (Settings › Developer settings › Personal access tokens) if a device is lost. The repo the board edits (mattgreenux/TimeRush, branch `main`) can be changed in Settings.
