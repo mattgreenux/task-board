@@ -10,7 +10,7 @@ import { parseList, serializeList, itemToText, textToItem } from './lists.js';
 const LISTS = [
   { key: 'next', name: 'Next Steps', file: 'TODO.md', section: 'Next Steps', marker: '1. ', indent: '   ', numbered: true },
   { key: 'backlog', name: 'Backlog', file: 'BACKLOG.md', section: null, marker: '- ', indent: '  ' },
-  { key: 'ideas', name: 'Feature ideas', tab: 'Ideas', file: 'IDEAS.md', section: 'Feature ideas', marker: '- ', indent: '  ' },
+  { key: 'ideas', name: 'Feature ideas', file: 'IDEAS.md', section: 'Feature ideas', marker: '- ', indent: '  ' },
 ];
 const listByKey = Object.fromEntries(LISTS.map((l) => [l.key, l]));
 
@@ -54,7 +54,6 @@ const draftKey = () => `taskboard:draft:${settings.owner}/${settings.repo}/${set
 let state = null; // { headSha, files: { name: { sha, text } }, lists: { key: { parsed?, error?, items } }, log: [] }
 let nextId = 1;
 let detailsOpen = readStore('taskboard:details', false);
-let activeTab = readStore('taskboard:tab', 'next');
 
 const withId = (item) => ({ ...item, id: nextId++ });
 
@@ -413,7 +412,7 @@ function render() {
   $('reload-button').disabled = busy;
 
   if (!state) {
-    $('tabs').innerHTML = '';
+    $('toolbar').innerHTML = '';
     if (!token) {
       $('board').innerHTML = `
         <div class="welcome">
@@ -427,11 +426,7 @@ function render() {
     return;
   }
 
-  if (!listByKey[activeTab]) activeTab = 'next';
-  $('tabs').innerHTML = LISTS.map((list) => `
-    <button type="button" class="tab${list.key === activeTab ? ' active' : ''}" data-tab="${list.key}" aria-pressed="${list.key === activeTab}">
-      ${list.tab ?? list.name} <span class="count">${state.lists[list.key].items.length}</span>
-    </button>`).join('') + `
+  $('toolbar').innerHTML = `
     <label class="toggle"><input type="checkbox" id="details-toggle" ${detailsOpen ? 'checked' : ''}> Notes</label>`;
 
   $('board').innerHTML = LISTS.map((list) => {
@@ -442,7 +437,7 @@ function render() {
       : `<ol class="items" data-list="${list.key}">${items.map((it, i) => renderCard(it, i, list)).join('')}</ol>
          ${items.length === 0 ? '<p class="empty">Nothing here. Drag items in or add one.</p>' : ''}`;
     return `
-      <section class="column${list.key === activeTab ? ' active' : ''}" data-list="${list.key}" aria-label="${list.name}">
+      <section class="column" data-list="${list.key}" aria-label="${list.name}">
         <div class="column-head">
           <h2>${list.name} <span class="count">${items.length}</span></h2>
           ${edited ? '<span class="edited" title="Unsaved changes">Edited</span>' : ''}
@@ -487,17 +482,6 @@ function showBanner(message, kind, action) {
 }
 function hideBanner() {
   $('banner').hidden = true;
-}
-
-function setTab(key) {
-  activeTab = key;
-  writeStore('taskboard:tab', key);
-  // Only switch classes (no redraw), so a drag in progress keeps going.
-  for (const el of document.querySelectorAll('[data-tab]')) {
-    el.classList.toggle('active', el.dataset.tab === key);
-    el.setAttribute('aria-pressed', String(el.dataset.tab === key));
-  }
-  for (const el of document.querySelectorAll('.column')) el.classList.toggle('active', el.dataset.list === key);
 }
 
 // ---------------------------------------------------------------------------
@@ -616,8 +600,8 @@ function discardAndReload() {
 // Dragging. Built on pointer events, which cover mouse, touch and pen alike.
 // Only the handle starts a drag, so the rest of the card scrolls normally on a
 // phone. A floating copy ("ghost") follows the finger while a gap
-// ("placeholder") shows where the item will land. On a phone, holding the
-// item over another list's tab switches to that list.
+// ("placeholder") shows where the item will land. On a phone the lists are
+// stacked, so dragging to another list means dragging up or down the page.
 
 let drag = null;
 
@@ -640,7 +624,7 @@ function startDrag(event, handle) {
   drag = {
     id: Number(card.dataset.id), card, ghost, placeholder, handle,
     offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top,
-    x: event.clientX, y: event.clientY, tabTimer: null, tabKey: null, frame: 0,
+    x: event.clientX, y: event.clientY, frame: 0,
   };
   handle.setPointerCapture(event.pointerId);
   moveGhost();
@@ -654,14 +638,6 @@ function moveGhost() {
 function updatePlaceholder() {
   const under = document.elementFromPoint(drag.x, drag.y);
   if (!under) return;
-
-  const tab = under.closest('[data-tab]');
-  const tabKey = tab && tab.dataset.tab !== activeTab ? tab.dataset.tab : null;
-  if (tabKey !== drag.tabKey) {
-    clearTimeout(drag.tabTimer);
-    drag.tabKey = tabKey;
-    if (tabKey) drag.tabTimer = setTimeout(() => setTab(tabKey), 450);
-  }
 
   const column = under.closest('.column');
   const listEl = column?.querySelector('.items');
@@ -703,9 +679,8 @@ function onDragMove(event) {
 
 function endDrag(event) {
   if (!drag) return;
-  const { id, placeholder, ghost, card, frame, tabTimer } = drag;
+  const { id, placeholder, ghost, card, frame } = drag;
   cancelAnimationFrame(frame);
-  clearTimeout(tabTimer);
   ghost.remove();
   document.body.classList.remove('is-dragging');
   drag = null;
@@ -741,8 +716,6 @@ document.addEventListener('click', (event) => {
   if (edit) openEditor({ id: Number(edit.dataset.edit) });
   const add = event.target.closest('[data-add]');
   if (add) openEditor({ newIn: add.dataset.add });
-  const tab = event.target.closest('[data-tab]');
-  if (tab) setTab(tab.dataset.tab);
   if (event.target.closest('[data-open-settings]')) openSettings();
 });
 

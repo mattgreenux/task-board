@@ -2,7 +2,7 @@
 
 A web page for reading and editing TimeRush's task lists from a desktop or a phone: <https://mattgreenux.github.io/task-board/>.
 
-It shows three lists side by side (one at a time on a phone, with tabs), read from Markdown files in the private [TimeRush](https://github.com/mattgreenux/TimeRush) repo:
+It shows three lists side by side (stacked one after another on a phone), read from Markdown files in the private [TimeRush](https://github.com/mattgreenux/TimeRush) repo:
 
 | Board list | Where it lives in TimeRush |
 | :--- | :--- |
