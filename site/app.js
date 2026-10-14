@@ -86,9 +86,17 @@ class GitHubError extends Error {
   }
 }
 
-async function gh(path, { method = 'GET', body, raw = false } = {}) {
+// `as` picks the answer: 'json', a file's contents as 'text' or a 'blob' (for
+// images), or a Markdown file turned into a web page by GitHub ('html').
+const ACCEPT = {
+  json: 'application/vnd.github+json',
+  text: 'application/vnd.github.raw+json',
+  blob: 'application/vnd.github.raw+json',
+  html: 'application/vnd.github.html+json',
+};
+async function gh(path, { method = 'GET', body, as = 'json' } = {}) {
   const headers = {
-    Accept: raw ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
+    Accept: ACCEPT[as],
     'X-GitHub-Api-Version': '2022-11-28',
   };
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -114,7 +122,8 @@ async function gh(path, { method = 'GET', body, raw = false } = {}) {
     }
     throw new GitHubError(response.status, detail);
   }
-  return raw ? response.text() : response.json();
+  if (as === 'json') return response.json();
+  return as === 'blob' ? response.blob() : response.text();
 }
 
 function explain(error, writing = false) {
@@ -143,7 +152,7 @@ async function fetchSnapshot() {
   await Promise.all(LISTS.map(async (list) => {
     const entry = tree.tree.find((e) => e.path === list.file);
     if (!entry) throw new GitHubError(404, `${list.file} is missing`);
-    files[list.file] = { sha: entry.sha, text: await gh(`/git/blobs/${entry.sha}`, { raw: true }) };
+    files[list.file] = { sha: entry.sha, text: await gh(`/git/blobs/${entry.sha}`, { as: 'text' }) };
   }));
   return { headSha: ref.object.sha, files };
 }
@@ -355,21 +364,36 @@ function escapeHtml(text) {
   return text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
 
+// A file's page on GitHub. `path` may end in "#heading".
+function githubUrl(path) {
+  const [file, hash] = path.split('#');
+  const encoded = file.split('/').map(encodeURIComponent).join('/');
+  return `https://github.com/${settings.owner}/${settings.repo}/blob/${encodeURIComponent(settings.branch)}/${encoded}${hash ? `#${hash}` : ''}`;
+}
+const isMarkdown = (path) => /\.md$/i.test(path.split('#')[0]);
+
 // Enough Markdown for these lists: `code`, **bold**, *italic* and [links].
-// Paths to Markdown files in `code` become links to the file on GitHub.
+// Paths to files in `code` and links to files in the repo point to the file on
+// GitHub; Markdown files open in the doc viewer instead (`data-doc`, see
+// "Reading docs" below), keeping the GitHub address for ⌘-click.
 function inline(text) {
-  const blob = `https://github.com/${settings.owner}/${settings.repo}/blob/${settings.branch}/`;
   const link = (href, label) => `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${label}</a>`;
+  const repoLink = (path, label) => isMarkdown(path)
+    ? `<a href="${escapeHtml(githubUrl(path))}" data-doc="${escapeHtml(path)}">${label}</a>`
+    : link(githubUrl(path), label);
   return text.split(/(`[^`]+`)/).map((part) => {
     if (part.startsWith('`') && part.endsWith('`') && part.length > 1) {
       const code = part.slice(1, -1);
       const html = `<code>${escapeHtml(code)}</code>`;
-      return /^[\w./-]+\.md$/.test(code) ? link(blob + code, html) : html;
+      return /^[\w./-]+\.md$/.test(code) ? repoLink(code, html) : html;
     }
     return escapeHtml(part)
       .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, label, href) => {
         if (/^https?:\/\//.test(href)) return link(href, label);
-        if (/^[\w./-]+$/.test(href)) return link(blob + href, label);
+        if (/^[\w./-]+(#[\w-]*)?$/.test(href)) {
+          const path = resolvePath('', href);
+          if (path) return repoLink(path, label);
+        }
         return label;
       })
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
@@ -597,6 +621,153 @@ function discardAndReload() {
 }
 
 // ---------------------------------------------------------------------------
+// Reading docs. Links to Markdown files in the repo open here, full screen,
+// rather than on GitHub: the repo is private, and a web app added to an
+// iPhone's Home Screen opens outside links in a browser that isn't signed in
+// to GitHub. GitHub turns the Markdown into a web page, the same way (and with
+// the same removal of unsafe HTML) as on github.com, and the page adjusts its
+// links: to other docs they open here, to headings they scroll.
+
+// A path inside the repo, from a link in the file at `dir` (e.g. "docs/").
+// Null if the link points outside the repo.
+function resolvePath(dir, href) {
+  let decoded;
+  try {
+    decoded = decodeURI(href);
+  } catch {
+    decoded = href;
+  }
+  const [file, hash] = decoded.split('#');
+  const parts = [];
+  for (const part of ((file.startsWith('/') ? '' : dir) + file).split('/')) {
+    if (part === '..') {
+      if (parts.length === 0) return null;
+      parts.pop();
+    } else if (part !== '.' && part !== '') {
+      parts.push(part);
+    }
+  }
+  if (parts.length === 0) return null;
+  return parts.join('/') + (hash ? `#${hash}` : '');
+}
+
+const contentsPath = (file) =>
+  `/contents/${file.split('/').map(encodeURIComponent).join('/')}?ref=${encodeURIComponent(settings.branch)}`;
+
+let docHistory = []; // paths of the docs opened since the viewer opened, the one showing last
+let docRequest = 0; // ignores answers to requests made before the latest one
+
+async function showDoc(path) {
+  const [file, hash] = path.split('#');
+  $('doc-title').textContent = file.split('/').pop();
+  $('doc-title').title = file;
+  $('doc-github').href = githubUrl(path);
+  $('doc-back').hidden = docHistory.length < 2;
+  const body = $('doc-body');
+  body.innerHTML = '<p class="loading">Loading…</p>';
+  body.scrollTop = 0;
+  if (!$('doc-viewer').open) $('doc-viewer').showModal();
+  const request = ++docRequest;
+  try {
+    const html = await gh(contentsPath(file), { as: 'html' });
+    if (request !== docRequest) return;
+    body.replaceChildren(prepareDoc(html, file));
+    if (hash) scrollToHeading(hash);
+  } catch (error) {
+    if (request !== docRequest) return;
+    const message = error instanceof GitHubError && error.status === 404
+      ? `${file} isn't on ${settings.branch}. It may have been renamed or deleted.`
+      : explain(error);
+    body.innerHTML = `<p class="list-error">${escapeHtml(message)}</p>`;
+  }
+}
+
+function openDoc(path) {
+  docHistory.push(path);
+  showDoc(path);
+}
+
+function docBack() {
+  docHistory.pop();
+  showDoc(docHistory.at(-1));
+}
+
+// Adjusts GitHub's page for the viewer. A <template> holds it while that
+// happens: nothing in one runs or loads until it's added to the page.
+function prepareDoc(html, file) {
+  const dir = file.slice(0, file.lastIndexOf('/') + 1);
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  const page = template.content;
+  // GitHub puts each heading's id on a link icon beside it; move the id to the
+  // heading and drop the icon.
+  for (const icon of page.querySelectorAll('a.anchor')) {
+    const heading = icon.parentElement?.querySelector('.heading-element') ?? icon.parentElement;
+    if (heading && icon.id) heading.id = icon.id;
+    icon.remove();
+  }
+  for (const a of page.querySelectorAll('a[href]')) {
+    const href = a.getAttribute('href');
+    if (href.startsWith('#')) {
+      a.dataset.heading = href.slice(1);
+      continue;
+    }
+    a.target = '_blank';
+    a.rel = 'noopener';
+    if (/^[a-z][a-z\d+.-]*:|^\/\//i.test(href)) continue; // a full address
+    const path = resolvePath(dir, href);
+    if (!path) continue;
+    a.href = githubUrl(path);
+    if (isMarkdown(path)) {
+      a.dataset.doc = path;
+      a.removeAttribute('target');
+    }
+  }
+  // Paths to Markdown files in `code` open in the viewer too, as on the board.
+  // Like the lists, docs write them from the repo's top folder.
+  for (const code of page.querySelectorAll('code')) {
+    const path = code.textContent;
+    if (code.closest('a, pre') || !/^[\w./-]+\.md$/.test(path)) continue;
+    const a = document.createElement('a');
+    a.href = githubUrl(path);
+    a.dataset.doc = path;
+    code.replaceWith(a);
+    a.append(code);
+  }
+  // Images in a private repo need the token, so fetch them with it.
+  for (const img of page.querySelectorAll('img[src]')) {
+    const src = img.getAttribute('src');
+    if (/^[a-z][a-z\d+.-]*:|^\/\//i.test(src)) continue;
+    img.removeAttribute('src');
+    const path = resolvePath(dir, src);
+    if (path) loadImage(img, path.split('#')[0]);
+  }
+  return page;
+}
+
+async function loadImage(img, file) {
+  try {
+    const url = URL.createObjectURL(await gh(contentsPath(file), { as: 'blob' }));
+    img.addEventListener('load', () => URL.revokeObjectURL(url), { once: true });
+    img.src = url;
+  } catch {
+    img.alt = img.alt || `Couldn't load ${file}`;
+  }
+}
+
+function scrollToHeading(hash) {
+  let id = hash;
+  try {
+    id = decodeURIComponent(hash);
+  } catch {
+    // Not encoded.
+  }
+  const body = $('doc-body');
+  const target = body.querySelector(`[id="${CSS.escape(`user-content-${id}`)}"], [id="${CSS.escape(id)}"]`);
+  target?.scrollIntoView({ block: 'start' });
+}
+
+// ---------------------------------------------------------------------------
 // Dragging. Built on pointer events, which cover mouse, touch and pen alike.
 // Only the handle starts a drag, so the rest of the card scrolls normally on a
 // phone. A floating copy ("ghost") follows the finger while a gap
@@ -711,6 +882,19 @@ document.addEventListener('pointerup', endDrag);
 document.addEventListener('pointercancel', endDrag);
 
 document.addEventListener('click', (event) => {
+  const heading = event.target.closest('a[data-heading]');
+  if (heading) {
+    event.preventDefault();
+    scrollToHeading(heading.dataset.heading);
+    return;
+  }
+  // ⌘-, Ctrl- or Shift-click still opens the doc on GitHub.
+  const doc = event.target.closest('a[data-doc]');
+  if (doc && !(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)) {
+    event.preventDefault();
+    openDoc(doc.dataset.doc);
+    return;
+  }
   if (event.target.closest('a')) return;
   const edit = event.target.closest('[data-edit]');
   if (edit) openEditor({ id: Number(edit.dataset.edit) });
@@ -720,6 +904,7 @@ document.addEventListener('click', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
+  if (event.target.closest?.('a')) return; // Enter on a link follows it
   const edit = event.target.closest?.('[data-edit]');
   if (edit && (event.key === 'Enter' || event.key === ' ')) {
     event.preventDefault();
@@ -770,6 +955,14 @@ $('text-copy').addEventListener('click', async () => {
 $('text-secondary').addEventListener('click', () => {
   $('text-dialog').close();
   textSecondary?.action();
+});
+
+$('doc-back').addEventListener('click', docBack);
+$('doc-close').addEventListener('click', () => $('doc-viewer').close());
+$('doc-viewer').addEventListener('close', () => {
+  docHistory = [];
+  docRequest++;
+  $('doc-body').replaceChildren();
 });
 
 // Warn before leaving the page with unsaved changes.

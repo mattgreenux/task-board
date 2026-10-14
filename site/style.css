@@ -224,3 +224,52 @@ button.link { font: inherit; background: none; border: 0; color: var(--accent); 
   .topbar h1 { font-size: 17px; }
   .sheet { margin: auto 0 0; width: 100vw; max-width: 100vw; border-radius: 14px 14px 0 0; padding-bottom: max(18px, env(safe-area-inset-bottom)); }
 }
+
+/* The doc viewer fills the whole screen; only the doc below its bar scrolls. */
+.doc-viewer {
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+.doc-viewer[open] { display: flex; flex-direction: column; }
+.doc-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
+  border-bottom: 1px solid var(--border);
+}
+.doc-bar h2 { flex: 1; min-width: 0; margin: 0; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-bar .btn[hidden] { display: none; }
+a.btn { display: inline-flex; align-items: center; text-decoration: none; white-space: nowrap; }
+.doc-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px max(16px, env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  line-height: 1.55;
+  overflow-wrap: break-word;
+}
+.doc-body > article, .doc-body > .loading, .doc-body > .list-error { max-width: 760px; margin: 16px auto 0; }
+.doc-body h1, .doc-body h2, .doc-body h3, .doc-body h4 { line-height: 1.25; margin: 1.4em 0 0.5em; scroll-margin-top: 12px; }
+.doc-body h1 { font-size: 1.6em; }
+.doc-body h2 { font-size: 1.3em; padding-bottom: 0.2em; border-bottom: 1px solid var(--border); }
+.doc-body h3 { font-size: 1.1em; }
+.doc-body article > :first-child, .doc-body .markdown-heading:first-child > * { margin-top: 0; }
+.doc-body p, .doc-body ul, .doc-body ol, .doc-body pre, .doc-body blockquote, .doc-body table { margin: 0 0 1em; }
+.doc-body ul, .doc-body ol { padding-left: 1.5em; }
+.doc-body li + li { margin-top: 0.25em; }
+.doc-body pre { background: var(--surface-2); padding: 10px 12px; border-radius: 8px; overflow-x: auto; }
+.doc-body pre code { background: none; padding: 0; font-size: 0.86em; line-height: 1.45; }
+.doc-body blockquote { margin-left: 0; padding-left: 12px; border-left: 3px solid var(--border); color: var(--muted); }
+.doc-body table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 0.92em; }
+.doc-body th, .doc-body td { border: 1px solid var(--border); padding: 6px 10px; vertical-align: top; }
+.doc-body th { background: var(--surface-2); }
+.doc-body hr { border: 0; border-top: 1px solid var(--border); margin: 1.5em 0; }
+.doc-body img { max-width: 100%; height: auto; }
