@@ -509,7 +509,8 @@ function hideBanner() {
 }
 
 // ---------------------------------------------------------------------------
-// The editor sheet, for editing, adding, moving and deleting one item.
+// The editor sheet, for editing or adding one item. Items are moved by
+// dragging, and deleted by Claude or in the Markdown files.
 
 let editing = null; // { id } for an existing item, or { newIn: listKey }
 
@@ -519,60 +520,31 @@ function openEditor(target) {
   const listKey = found ? found.list.key : target.newIn;
   $('editor-heading').textContent = found ? 'Edit item' : `New item`;
   $('editor-text').value = found ? itemToText(found.item) : '';
-  $('editor-list').innerHTML = LISTS.filter((l) => !state.lists[l.key].error)
-    .map((l) => `<option value="${l.key}"${l.key === listKey ? ' selected' : ''}>${l.name}</option>`).join('');
-  $('editor-delete').hidden = !found;
-  updateEditorPosition();
+  $('editor-warning').hidden = !(listKey === 'next' && !found);
   $('editor').showModal();
   if (!found) $('editor-text').focus();
-}
-
-function updateEditorPosition() {
-  const found = editing.id ? findItem(editing.id) : null;
-  const listKey = $('editor-list').value;
-  const stays = found && found.list.key === listKey;
-  const options = stays ? [['keep', 'Keep its place'], ['top', 'Top'], ['bottom', 'Bottom']] : [['top', 'Top'], ['bottom', 'Bottom']];
-  $('editor-position').innerHTML = options.map(([v, label]) => `<option value="${v}">${label}</option>`).join('');
-  if (!stays) $('editor-position').value = listKey === 'next' ? 'bottom' : 'top';
-  $('editor-warning').hidden = !(listKey === 'next' && !stays);
 }
 
 function applyEditor() {
   const item = textToItem($('editor-text').value);
   if (!item) return;
-  const listKey = $('editor-list').value;
-  const position = $('editor-position').value;
-  const target = state.lists[listKey].items;
   const found = editing.id ? findItem(editing.id) : null;
 
+  // New items go where they're usually wanted: last in Next Steps (an ordered
+  // plan), first in the other lists. Dragging moves them from there.
   if (!found) {
+    const listKey = editing.newIn;
     const added = withId(item);
-    if (position === 'top') target.unshift(added);
-    else target.push(added);
+    if (listKey === 'next') state.lists[listKey].items.push(added);
+    else state.lists[listKey].items.unshift(added);
     changed(`Add ${short(added.title)} to ${listByKey[listKey].name}`);
     return;
   }
 
-  const textChanged = itemToText(found.item) !== itemToText(item);
-  if (textChanged) {
-    found.item.title = item.title;
-    found.item.details = item.details;
-    state.log.push(`Edit ${short(item.title)}`);
-  }
-  if (position === 'keep') {
-    changed();
-    return;
-  }
-  const index = position === 'top' ? 0 : target.length - (found.list.key === listKey ? 1 : 0);
-  moveItem(found.item.id, listKey, index);
-}
-
-function deleteEditing() {
-  const found = findItem(editing.id);
-  if (!found || !confirm(`Delete “${found.item.title}”?`)) return;
-  found.items.splice(found.index, 1);
-  $('editor').close('deleted');
-  changed(`Delete ${short(found.item.title)} from ${found.list.name}`);
+  if (itemToText(found.item) === itemToText(item)) return;
+  found.item.title = item.title;
+  found.item.details = item.details;
+  changed(`Edit ${short(item.title)}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -927,8 +899,6 @@ $('reload-button').addEventListener('click', () => {
 });
 $('settings-button').addEventListener('click', () => openSettings());
 
-$('editor-list').addEventListener('change', updateEditorPosition);
-$('editor-delete').addEventListener('click', deleteEditing);
 $('editor').addEventListener('close', () => {
   if ($('editor').returnValue === 'done') applyEditor();
   $('editor').returnValue = '';
