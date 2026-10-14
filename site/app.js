@@ -53,7 +53,7 @@ const draftKey = () => `taskboard:draft:${settings.owner}/${settings.repo}/${set
 
 let state = null; // { headSha, files: { name: { sha, text } }, lists: { key: { parsed?, error?, items } }, log: [] }
 let nextId = 1;
-let detailsOpen = readStore('taskboard:details', false);
+let detailsOpen = readStore('taskboard:details', true); // notes show until switched off
 
 const withId = (item) => ({ ...item, id: nextId++ });
 
