@@ -429,6 +429,9 @@ function renderCard(item, index, list) {
 }
 
 function render() {
+  const title = `Task Board - ${settings.repo}`;
+  document.title = title;
+  $('page-title').textContent = title;
   const changes = changedLists();
   const saveButton = $('save-button');
   saveButton.disabled = changes.length === 0 || busy;
@@ -461,7 +464,7 @@ function render() {
         <div class="column-head">
           <h2>${list.name} <span class="count">${items.length}</span></h2>
           ${edited ? '<span class="edited" title="Unsaved changes">Edited</span>' : ''}
-          ${error ? '' : `<button class="btn small" type="button" data-add="${list.key}">Add</button>`}
+          ${error ? '' : `<button class="btn small" type="button" data-add="${list.key}">+ Add</button>`}
         </div>
         ${body}
       </section>`;
