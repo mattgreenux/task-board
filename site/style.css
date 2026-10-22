@@ -76,7 +76,7 @@ a { color: var(--accent); }
 .btn.small { font-size: 14px; min-height: 30px; padding: 3px 10px; }
 button.link { font: inherit; background: none; border: 0; color: var(--accent); text-decoration: underline; cursor: pointer; padding: 0; }
 
-/* Top bar and toolbar. They stay at the top while the page scrolls. */
+/* The top bar stays at the top while the page scrolls. */
 .sticky {
   position: sticky;
   top: 0;
@@ -94,14 +94,6 @@ button.link { font: inherit; background: none; border: 0; color: var(--accent); 
 .topbar h1 { font-size: 19px; margin: 0; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .actions { display: flex; gap: 8px; }
 
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  padding: 0 16px 10px;
-}
-.toggle { display: flex; align-items: center; gap: 5px; font-size: 14px; color: var(--muted); white-space: nowrap; padding-left: 4px; }
 .count { color: var(--muted); font-weight: 400; font-size: 0.85em; }
 
 .banner {
@@ -135,10 +127,9 @@ button.link { font: inherit; background: none; border: 0; color: var(--accent); 
   .column + .column { margin-top: 0; }
 }
 
-.column-head { display: flex; align-items: center; gap: 8px; }
+.column-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .column-head h2 { font-size: 17px; margin: 0; flex: 1; }
 .edited { font-size: 12px; font-weight: 600; color: var(--accent); }
-.file { margin: 2px 0 10px; font-size: 13px; color: var(--muted); }
 .empty, .list-error { color: var(--muted); font-size: 15px; }
 .list-error { background: var(--error-bg); color: var(--text); padding: 10px 12px; border-radius: 8px; }
 
@@ -210,6 +201,8 @@ button.link { font: inherit; background: none; border: 0; color: var(--accent); 
 }
 .field textarea, #text-content { resize: vertical; line-height: 1.45; }
 #text-content { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }
+.toggle { display: flex; align-items: center; gap: 8px; font-size: 16px; margin-bottom: 16px; cursor: pointer; }
+.toggle input { width: 18px; height: 18px; margin: 0; }
 .row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
 .hint { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
 .hint.warning { color: var(--text); background: var(--warning-bg); padding: 6px 10px; border-radius: 6px; margin-top: 12px; }

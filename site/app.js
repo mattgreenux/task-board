@@ -436,7 +436,6 @@ function render() {
   $('reload-button').disabled = busy;
 
   if (!state) {
-    $('toolbar').innerHTML = '';
     if (!token) {
       $('board').innerHTML = `
         <div class="welcome">
@@ -449,9 +448,6 @@ function render() {
     }
     return;
   }
-
-  $('toolbar').innerHTML = `
-    <label class="toggle"><input type="checkbox" id="details-toggle" ${detailsOpen ? 'checked' : ''}> Notes</label>`;
 
   $('board').innerHTML = LISTS.map((list) => {
     const { items, error } = state.lists[list.key];
@@ -467,7 +463,6 @@ function render() {
           ${edited ? '<span class="edited" title="Unsaved changes">Edited</span>' : ''}
           ${error ? '' : `<button class="btn small" type="button" data-add="${list.key}">Add</button>`}
         </div>
-        <p class="file">${list.file}${list.section ? ` › ${list.section}` : ''}</p>
         ${body}
       </section>`;
   }).join('');
@@ -551,6 +546,7 @@ function applyEditor() {
 // Settings and the copyable-text sheet
 
 function openSettings(message) {
+  $('details-toggle').checked = detailsOpen;
   $('settings-token').value = token;
   $('settings-owner').value = settings.owner;
   $('settings-repo').value = settings.repo;
