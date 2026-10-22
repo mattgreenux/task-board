@@ -433,9 +433,7 @@ function render() {
   document.title = title;
   $('page-title').textContent = title;
   const changes = changedLists();
-  const saveButton = $('save-button');
-  saveButton.disabled = changes.length === 0 || busy;
-  saveButton.textContent = changes.length > 0 ? `Save (${changes.length} ${changes.length === 1 ? 'file' : 'files'})` : 'Save';
+  $('save-button').disabled = changes.length === 0 || busy;
   $('reload-button').disabled = busy;
 
   if (!state) {
